@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RiverMath - honest poker odds, computed not memorized</title>
+<meta name="description" content="Exact draw odds vs the rule of 2 and 4, pot odds translated into the outs you need, and hand-vs-hand equity enumerated runout by runout.">
+<style>
+  :root { --felt:#0d3b2e; --felt2:#0a2f25; --ink:#f2efe6; --dim:#b8c9c0; --gold:#e8b64c; --card:#123f33; --line:#1e5a48; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Georgia, 'Times New Roman', serif; background: var(--felt); color: var(--ink); }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 18px 64px; }
+  header { text-align:center; padding: 34px 0 18px; }
+  .logo { font-size: 44px; font-weight: bold; letter-spacing: 1px; }
+  .logo .rm { color: var(--gold); }
+  .tag { color: var(--dim); font-size: 18px; margin-top: 6px; }
+  .hero { background: var(--felt2); border:1px solid var(--line); border-radius: 14px; padding: 26px; margin-top: 22px; font-size: 18px; line-height: 1.55; }
+  .hero b { color: var(--gold); }
+  .grid { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 20px; }
+  .cell { background: var(--card); border:1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .cell h3 { margin: 0 0 8px; font-size: 17px; color: var(--gold); }
+  .cell p { margin:0; color: var(--dim); font-size: 15px; line-height: 1.5; }
+  .cta { text-align:center; margin: 34px 0 10px; }
+  .cta a { display:inline-block; background: var(--gold); color:#1d1606; font-size: 20px; font-weight: bold; text-decoration:none; padding: 14px 38px; border-radius: 999px; }
+  .limits { margin-top: 34px; font-size: 14px; color: var(--dim); line-height: 1.6; }
+  .limits h2 { color: var(--ink); font-size: 17px; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } .logo { font-size: 34px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><span class="rm">River</span>Math</div>
+    <div class="tag">The rule of 2 and 4 is a lie of convenience. Here is the exact number.</div>
+  </header>
+  <div class="hero">
+    Every player knows the shortcut: multiply your outs by 2 per street, by 4 from the flop.
+    Almost nobody checks it. RiverMath computes the <b>exact</b> draw odds with the real
+    combinatorics, prices a call from the pot and the bet, and settles hand-vs-hand arguments
+    by <b>enumerating every remaining runout</b> - flop and turn down to the last card.
+  </div>
+  <div class="grid">
+    <div class="cell"><h3>Outs, fact-checked</h3>
+      <p>Pick a draw or enter your outs. Exact turn, river and either-street probabilities,
+      side by side with the rule of 2 and 4 and the size of its error in percentage points.</p></div>
+    <div class="cell"><h3>Pot odds, translated</h3>
+      <p>Pot and bet in, required equity out - plus the number of outs that justifies the call
+      and a verdict table for the six classic draws.</p></div>
+    <div class="cell"><h3>Equity, enumerated</h3>
+      <p>Two hands and a board: every remaining runout counted exactly on the flop and turn.
+      Preflop uses a labeled, fixed-seed Monte Carlo estimate - because honesty beats false precision.</p></div>
+  </div>
+  <div class="cta"><a href="app.html">Open the odds machine</a></div>
+  <div class="limits">
+    <h2>What this is not</h2>
+    <p>An educational calculator, not gambling advice and not a game. Hand-vs-hand only: no ranges,
+    no multiway pots, no implied odds modeling. Draw math assumes every out is clean - a flush draw
+    that pairs the board is not always 9 clean outs. Preflop equity is a Monte Carlo estimate with a
+    fixed seed and stated sample count, labeled as such in the results. Nothing is stored or sent;
+    everything runs in this page.</p>
+  </div>
+</div>
+</body>
+</html>
