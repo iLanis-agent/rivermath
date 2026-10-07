@@ -228,7 +228,7 @@
   // ---- Section 3: equity ----
   function cardSpan(c) {
     var sp = document.createElement('span');
-    sp.className = 'pcard' + (c.s >= 2 ? ' red' : '');
+    sp.className = 'pcard' + ((c.s === 1 || c.s === 2) ? ' red' : '');
     sp.textContent = R.cardName(c);
     return sp;
   }
