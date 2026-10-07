@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RiverMath - the odds machine</title>
+<style>
+  :root { --felt:#0d3b2e; --felt2:#0a2f25; --ink:#f2efe6; --dim:#b8c9c0; --gold:#e8b64c; --card:#123f33; --line:#1e5a48; --bad:#e07a5f; --good:#81b29a; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Georgia, serif; background: var(--felt); color: var(--ink); }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 18px 16px 70px; }
+  a.home { color: var(--gold); text-decoration:none; font-size: 15px; }
+  h1 { font-size: 30px; margin: 10px 0 2px; }
+  h1 .rm { color: var(--gold); }
+  .sub { color: var(--dim); margin-bottom: 20px; }
+  section { background: var(--felt2); border:1px solid var(--line); border-radius: 14px; padding: 20px; margin-top: 18px; }
+  section h2 { margin: 0 0 4px; font-size: 21px; color: var(--gold); }
+  section .hint { color: var(--dim); font-size: 14px; margin-bottom: 14px; }
+  .row { display:flex; flex-wrap:wrap; gap: 12px; align-items: flex-end; }
+  label { display:block; font-size: 13px; color: var(--dim); margin-bottom: 4px; }
+  input, select { font: inherit; background:#0a2720; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:9px 10px; width: 130px; }
+  input:focus { outline: 2px solid var(--gold); }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .chip { font: inherit; font-size: 14px; background:#0a2720; color: var(--dim); border:1px solid var(--line); border-radius:999px; padding:7px 14px; cursor:pointer; }
+  .chip:hover, .chip.on { color: var(--gold); border-color: var(--gold); }
+  button.go { font:inherit; font-weight:bold; background:var(--gold); color:#1d1606; border:0; border-radius:999px; padding:11px 26px; cursor:pointer; }
+  table { border-collapse: collapse; width:100%; margin-top: 14px; font-size: 15px; }
+  th, td { border:1px solid var(--line); padding: 8px 10px; text-align:left; }
+  th { color: var(--gold); font-weight: bold; background:#0a2720; }
+  .num { font-variant-numeric: tabular-nums; }
+  .big { font-size: 26px; color: var(--gold); font-weight:bold; }
+  .err { color: var(--bad); margin-top: 10px; font-size: 15px; }
+  .note { color: var(--dim); font-size: 13px; margin-top: 10px; line-height:1.5; }
+  .verdict { font-weight: bold; }
+  .v-good { color: var(--good); }
+  .v-bad { color: var(--bad); }
+  .cards-out { font-size: 15px; }
+  .pcard { display:inline-block; background:#f7f4ea; color:#182420; border-radius:5px; padding:3px 7px; margin:2px; font-family: ui-monospace, monospace; font-weight:bold; }
+  .pcard.red { color:#b23b3b; }
+  #eq-status { margin-top:10px; color:var(--dim); font-size:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="index.html">&larr; RiverMath</a>
+  <h1><span class="rm">River</span>Math</h1>
+  <div class="sub">Exact odds, priced calls, enumerated runouts. Nothing stored, nothing sent.</div>
+
+  <section>
+    <h2>1. Outs, fact-checked</h2>
+    <div class="hint">How many cards win it for you? See the exact math next to the shortcut everyone quotes.</div>
+    <div class="row">
+      <div>
+        <label for="outs">Outs</label>
+        <input id="outs" type="number" min="0" max="20" step="1" value="9">
+      </div>
+      <div>
+        <label for="street">You are on the</label>
+        <select id="street">
+          <option value="47" selected>flop (47 unseen)</option>
+          <option value="46">turn (46 unseen)</option>
+        </select>
+      </div>
+      <button class="go" id="outs-go">Compute</button>
+    </div>
+    <div class="chips" id="draw-chips"></div>
+    <div id="outs-result"></div>
+    <div class="err" id="outs-err"></div>
+    <div class="note">Exact = hypergeometric combinatorics. "Either street" counts hitting on the turn, the river, or both,
+    and assumes every out is clean. Rule of 2 = outs x 2% per street; rule of 4 = outs x 4% flop-to-river.</div>
+  </section>
+
+  <section>
+    <h2>2. Pot odds, translated</h2>
+    <div class="hint">The pot offers a price. This is the equity the call demands, and the draw that can pay it.</div>
+    <div class="row">
+      <div>
+        <label for="pot">Pot before the bet</label>
+        <input id="pot" type="number" min="1" step="any" value="100">
+      </div>
+      <div>
+        <label for="bet">Bet to call</label>
+        <input id="bet" type="number" min="0.01" step="any" value="25">
+      </div>
+      <button class="go" id="pot-go">Price the call</button>
+    </div>
+    <div id="pot-result"></div>
+    <div class="err" id="pot-err"></div>
+    <div class="note">Required equity = bet / (pot + 2 x bet). Break-even outs uses one street (46 unseen).
+    Turn calls can also rely on implied odds and the second street - that judgment stays with you.</div>
+  </section>
+
+  <section>
+    <h2>3. Hand vs hand, enumerated</h2>
+    <div class="hint">Two hole-card hands and a board. Flop and turn are counted exactly, runout by runout.</div>
+    <div class="row">
+      <div>
+        <label for="hero">Your hand (2 cards)</label>
+        <input id="hero" type="text" value="Ah Kh" style="width:120px" spellcheck="false">
+      </div>
+      <div>
+        <label for="villain">Their hand (2 cards)</label>
+        <input id="villain" type="text" value="2c 2d" style="width:120px" spellcheck="false">
+      </div>
+      <div>
+        <label for="board">Board (0, 3, 4 or 5 cards)</label>
+        <input id="board" type="text" value="Qs Js 4d" style="width:150px" spellcheck="false">
+      </div>
+      <button class="go" id="eq-go">Run it</button>
+    </div>
+    <div class="chips">
+      <button class="chip" id="demo-flip">Classic flip: AK vs 22</button>
+      <button class="chip" id="demo-monster">Monster draw vs overpair</button>
+      <button class="chip" id="demo-preflop">Preflop: AA vs KK (Monte Carlo)</button>
+    </div>
+    <div id="eq-status"></div>
+    <div id="eq-result"></div>
+    <div class="err" id="eq-err"></div>
+    <div class="note">Cards: rank 2-9 T J Q K A + suit c d h s (e.g. Td = ten of diamonds). Flop and turn enumerate every
+    remaining runout exactly. A full board is a pure showdown. Preflop would mean 1.7 million boards, so it uses a
+    fixed-seed Monte Carlo estimate, labeled with its sample count - an honest estimate, not a fake exact number.
+    Hand-vs-hand only: no ranges, no multiway pots.</div>
+  </section>
+</div>
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var R = window.RiverMath;
+  function $(id) { return document.getElementById(id); }
+  function pct(x, d) { return (x * 100).toFixed(d == null ? 1 : d) + '%'; }
+  function pp(x, d) { var v = (x * 100).toFixed(d == null ? 1 : d); return (x >= 0 ? '+' : '') + v + ' pp'; }
+
+  // ---- Section 1: outs ----
+  var chipsBox = $('draw-chips');
+  R.DRAWS.forEach(function (d) {
+    var b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = d.name + ' (' + d.outs + ')';
+    b.addEventListener('click', function () {
+      $('outs').value = d.outs;
+      runOuts();
+    });
+    chipsBox.appendChild(b);
+  });
+
+  function runOuts() {
+    var err = $('outs-err'); err.textContent = '';
+    var res = $('outs-result'); res.textContent = '';
+    var outs = Number($('outs').value);
+    var unseen = Number($('street').value);
+    if (!Number.isInteger(outs) || outs < 0 || outs > 20) {
+      err.textContent = 'Outs must be a whole number from 0 to 20.'; return;
+    }
+    var o = R.outsOdds(outs, unseen);
+    var t = document.createElement('table');
+    var rows = [
+      ['Exact: next card', pct(o.turn)],
+      ['Exact: river after a missed turn', pct(o.riverAfterMiss)],
+      ['Exact: either street (flop only)', unseen === 47 ? pct(o.either) : 'n/a (already on the turn)'],
+      ['Rule of 2 (per street)', pct(o.rule2) + '  (' + pp(o.rule2Error) + ')'],
+      ['Rule of 4 (flop to river)', unseen === 47 ? pct(o.rule4) + '  (' + pp(o.rule4Error) + ')' : 'n/a']
+    ];
+    var thead = t.createTHead().insertRow();
+    ['Measure', 'Value'].forEach(function (h) {
+      var th = document.createElement('th'); th.textContent = h; thead.appendChild(th);
+    });
+    rows.forEach(function (r) {
+      var tr = t.insertRow();
+      var c1 = tr.insertCell(); c1.textContent = r[0];
+      var c2 = tr.insertCell(); c2.textContent = r[1]; c2.className = 'num';
+    });
+    res.appendChild(t);
+    var v = document.createElement('div');
+    v.className = 'note';
+    if (unseen === 47) {
+      var over = o.rule4Error;
+      v.textContent = outs + ' outs: the rule of 4 says ' + pct(o.rule4) + ', the exact number is ' + pct(o.either) +
+        ' - the shortcut ' + (Math.abs(over) < 0.005 ? 'is close here.' :
+        (over > 0 ? 'overstates your draw by ' + pp(over).slice(1) + '.' : 'understates it by ' + pp(-over).slice(1) + '.'));
+    } else {
+      v.textContent = outs + ' outs on the turn: exactly ' + pct(o.riverAfterMiss) + ' on the river.';
+    }
+    res.appendChild(v);
+  }
+  $('outs-go').addEventListener('click', runOuts);
+
+  // ---- Section 2: pot odds ----
+  function runPot() {
+    var err = $('pot-err'); err.textContent = '';
+    var res = $('pot-result'); res.textContent = '';
+    var pot = Number($('pot').value), bet = Number($('bet').value);
+    if (!(pot > 0) || !(bet > 0)) { err.textContent = 'Pot and bet must both be positive numbers.'; return; }
+    var p = R.potOdds(pot, bet);
+    var need = R.breakEvenOuts(p.required, 46);
+    var head = document.createElement('div');
+    head.innerHTML = '';
+    var s1 = document.createElement('p');
+    s1.textContent = 'Call ' + bet + ' to win ' + (pot + bet) + ' (final pot ' + p.finalPot + '). Pot odds ' +
+      p.ratio.toFixed(2) + ' to 1.';
+    var s2 = document.createElement('p');
+    var big = document.createElement('span'); big.className = 'big';
+    big.textContent = 'Required equity: ' + pct(p.required, 1);
+    s2.appendChild(big);
+    var s3 = document.createElement('p');
+    s3.textContent = 'Break-even on one street: ' + need + ' clean outs (river, 46 unseen).';
+    res.appendChild(s1); res.appendChild(s2); res.appendChild(s3);
+    var t = document.createElement('table');
+    var thead = t.createTHead().insertRow();
+    ['Draw', 'Outs', 'Exact on one street', 'Call justified on direct odds?'].forEach(function (h) {
+      var th = document.createElement('th'); th.textContent = h; thead.appendChild(th);
+    });
+    R.DRAWS.forEach(function (d) {
+      var eq = d.outs / 46;
+      var tr = t.insertRow();
+      tr.insertCell().textContent = d.name;
+      var oc = tr.insertCell(); oc.textContent = d.outs; oc.className = 'num';
+      var ec = tr.insertCell(); ec.textContent = pct(eq); ec.className = 'num';
+      var vc = tr.insertCell();
+      var yes = eq >= p.required;
+      vc.textContent = yes ? 'yes' : 'no';
+      vc.className = 'verdict ' + (yes ? 'v-good' : 'v-bad');
+    });
+    res.appendChild(t);
+  }
+  $('pot-go').addEventListener('click', runPot);
+
+  // ---- Section 3: equity ----
+  function cardSpan(c) {
+    var sp = document.createElement('span');
+    sp.className = 'pcard' + (c.s >= 2 ? ' red' : '');
+    sp.textContent = R.cardName(c);
+    return sp;
+  }
+  function renderCards(box, cards) {
+    cards.forEach(function (c) { box.appendChild(cardSpan(c)); });
+  }
+  function runEquity() {
+    var err = $('eq-err'); err.textContent = '';
+    var res = $('eq-result'); res.textContent = '';
+    var status = $('eq-status'); status.textContent = '';
+    var hero = R.parseCards($('hero').value);
+    var vil = R.parseCards($('villain').value);
+    var board = R.parseCards($('board').value);
+    if (hero.error) { err.textContent = 'Your hand: ' + hero.error; return; }
+    if (vil.error) { err.textContent = 'Their hand: ' + vil.error; return; }
+    if (board.error) { err.textContent = 'Board: ' + board.error; return; }
+    if (hero.length !== 2) { err.textContent = 'Your hand must be exactly 2 cards.'; return; }
+    if (vil.length !== 2) { err.textContent = 'Their hand must be exactly 2 cards.'; return; }
+    if ([0, 3, 4, 5].indexOf(board.length) < 0) {
+      err.textContent = 'Board must be 0 (preflop), 3 (flop), 4 (turn) or 5 (river) cards.'; return;
+    }
+    var preflop = board.length === 0;
+    if (preflop) status.textContent = 'Sampling 200,000 boards (fixed seed 407)...';
+    var t0 = Date.now();
+    var r = R.equity(hero, vil, board, 200000, 407);
+    if (r.error) { err.textContent = r.error; status.textContent = ''; return; }
+    var ms = Date.now() - t0;
+    var box = document.createElement('div');
+    box.className = 'cards-out';
+    var hb = document.createElement('p');
+    hb.textContent = 'You: '; renderCards(hb, hero);
+    var vb = document.createElement('p');
+    vb.textContent = 'Them: '; renderCards(vb, vil);
+    box.appendChild(hb); box.appendChild(vb);
+    if (board.length) {
+      var bb = document.createElement('p');
+      bb.textContent = 'Board: '; renderCards(bb, board);
+      box.appendChild(bb);
+    }
+    res.appendChild(box);
+    if (board.length === 5) {
+      var sh = document.createElement('p');
+      sh.textContent = 'You show ' + R.describeHand(hero.concat(board)) +
+        ', they show ' + R.describeHand(vil.concat(board)) + '.';
+      res.appendChild(sh);
+    }
+    var t = document.createElement('table');
+    var thead = t.createTHead().insertRow();
+    ['You win', 'Tie', 'They win'].forEach(function (h) {
+      var th = document.createElement('th'); th.textContent = h; thead.appendChild(th);
+    });
+    var tr = t.insertRow();
+    [[r.win], [r.tie], [r.loss]].forEach(function (x) {
+      var c = tr.insertCell(); c.textContent = pct(x[0], r.exact ? 2 : 1); c.className = 'num';
+    });
+    res.appendChild(t);
+    var meta = document.createElement('p');
+    meta.className = 'note';
+    meta.textContent = r.exact
+      ? 'Exact: all ' + r.total.toLocaleString('en-US') + ' remaining runouts counted in ' + ms + ' ms.'
+      : 'Monte Carlo estimate: ' + r.total.toLocaleString('en-US') + ' sampled boards, fixed seed 407, ' + ms +
+        ' ms. Rerun with the same seed gives the same numbers; treat the last digit as noise.';
+    res.appendChild(meta);
+    status.textContent = '';
+  }
+  $('eq-go').addEventListener('click', runEquity);
+  $('demo-flip').addEventListener('click', function () {
+    $('hero').value = 'Ah Kh'; $('villain').value = '2c 2d'; $('board').value = 'Qs Js 4d'; runEquity();
+  });
+  $('demo-monster').addEventListener('click', function () {
+    $('hero').value = 'As Ks'; $('villain').value = 'Qh Qd'; $('board').value = 'Ts Js 2s'; runEquity();
+  });
+  $('demo-preflop').addEventListener('click', function () {
+    $('hero').value = 'Ac Ad'; $('villain').value = 'Kc Kd'; $('board').value = ''; runEquity();
+  });
+
+  runOuts();
+  runPot();
+})();
+</script>
+</body>
+</html>
